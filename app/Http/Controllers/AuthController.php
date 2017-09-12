@@ -34,7 +34,7 @@ class AuthController extends ApiController
             'members.*.accomodation' => 'required',
             'members.*.college_name' => 'required|alpha',
             'members.*.email' => 'required|email|unique:members',
-            'members.*.contact_no' => 'required|max:11|min:10',
+            'members.*.contact_no' => 'required',
             
         ];
 
@@ -76,7 +76,7 @@ class AuthController extends ApiController
         $members = Member::where('team_id', $team->id)->where('teamlead', 1)->first();
         $email = $members->email;
         $subject = "Team Registration for SCROLLS 2k17";
-        
+
         if(Mail::send('email.template', ['name' => $team_name, 'team_id' => $team_id],
             function($mail) use ($email, $team_name, $subject){
                 $mail->from("akgec-scrolls@silive.in", "SCROLLS 2k17");
