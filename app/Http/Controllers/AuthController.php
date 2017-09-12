@@ -1,14 +1,15 @@
 <?php
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
-use App\User;
+use App\Member;
+use App\Team;
 use JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Validator;
 use DB, Hash, Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Mail\Message;
-class AuthController extends Controller
+class AuthController extends ApiController
 {
     /**
      * API Register
@@ -18,65 +19,77 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
-        $rules = [
-            'name' => 'required|max:255',
-            'email' => 'required|email|max:255|unique:users',
-            'password' => 'required|confirmed|min:6',
+       $rules = [
+            'team_name' => 'required|max:50',
+            'domain_id' => 'required',
+            'topic_id' => 'required',
+            'password' => 'required|min:6',
+            'noofmembers' => 'required',
+
+            
+            'members.*.name' => 'required',
+            'members.*.course' => 'required',
+            'members.*.year' => 'required|max:1',
+            'members.*.student_no' => 'regex:/^(\d){7}[dD\-"\s"]{0,1}$/|unique:members',
+            'members.*.accomodation' => 'required',
+            'members.*.college_name' => 'required|alpha',
+            'members.*.email' => 'required|email|unique:members',
+            'members.*.contact_no' => 'required|max:11|min:10',
+            
         ];
-        $input = $request->only(
-            'name',
-            'email',
-            'password',
-            'password_confirmation'
-        );
-        $validator = Validator::make($input, $rules);
-        if($validator->fails()) {
-            $error = $validator->messages()->toJson();
-            return response()->json(['success'=> false, 'error'=> $error]);
-        }
-        $name = $request->name;
-        $email = $request->email;
-        $password = $request->password;
 
-        $user = User::create(['name' => $name, 'email' => $email, 'password' => Hash::make($password)]);
-        $verification_code = str_random(30); //Generate verification code
-        DB::table('user_verifications')->insert(['user_id'=>$user->id,'token'=>$verification_code]);
+        $this->validate($request, $rules);
+        
+        $inputs = $request->all();
+        $team_name = $request->team_name;
+        $domain_id = $inputs['domain_id'];
+        $topic_id = $inputs['topic_id'];
+        $team_id = 'SCROLLS'.$domain_id.$topic_id.rand(10,99).rand(1,9);
+
+        $team = Team::create([
+        	'team_name' => $team_name,
+        	'password' => Hash::make($request->password),
+        	'teamid' => $team_id,
+        	'domain_id' => $domain_id,
+        	'topic_id'=> $topic_id,
+        	'noofmembers' => $request->noofmembers,
+        ]);
+
+        foreach($inputs['members'] as $member){
+            $mem = [
+                'name'=>$member['name'],
+                'email'=>$member['email'],
+                'course'=>$member['course'],
+                'year'=>$member['year'],
+                'student_no'=>$member['student_no'],
+                'accomodation'=>$member['accomodation'],
+                'college_name'=>$member['college_name'],
+                'contact_no'=>$member['contact_no'],
+                'team_id'=>$team->id,
+                'teamlead' => $member['teamlead'],
+            ];
+            
+            //DB::table('members')->insert(['team_id'=>$team->id);
+            Member::create($mem);
+        }
+        
+        $members = Member::where('team_id', $team->id)->where('teamlead', 1)->first();
+        $email = $members->email;
         $subject = "Team Registration for SCROLLS 2k17";
-        Mail::send('email.verify', ['name' => $name, 'verification_code' => $verification_code],
-            function($mail) use ($email, $name, $subject){
-                $mail->from("Akgec-scrolls@silive.in", "SCROLLS 2k17");
-                $mail->to($email, $name);
+        
+        if(Mail::send('email.template', ['name' => $team_name, 'team_id' => $team_id],
+            function($mail) use ($email, $team_name, $subject){
+                $mail->from("akgec-scrolls@silive.in", "SCROLLS 2k17");
+                $mail->to($email, $team_name);
                 $mail->subject($subject);
-            });
-        return response()->json(['success'=> true, 'message'=> 'Thanks for signing up! Please check your email to complete your registration.']);
-    }
+            })){
+   
+        return response()->json(['success'=> true, 'data'=> $team_id]);
+       }
+       else{
 
-
-    /**
-     * API Verify User
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function verifyUser($verification_code)
-    {
-        $check = DB::table('user_verifications')->where('token',$verification_code)->first();
-        if(!is_null($check)){
-            $user = User::find($check->user_id);
-            if($user->is_verified == 1){
-                return response()->json([
-                    'success'=> true,
-                    'message'=> 'Account already verified..'
-                ]);
-            }
-            $user->update(['is_verified' => 1]);
-            DB::table('user_verifications')->where('token',$verification_code)->delete();
-            return response()->json([
-                'success'=> true,
-                'message'=> 'You have successfully verified your email address.'
-            ]);
-        }
-        return response()->json(['success'=> false, 'error'=> "Verification code is invalid."]);
+       	return response()->json(['success'=> true, 'data'=> $team_id]);
+       }
     }
 
 
@@ -89,24 +102,24 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $rules = [
-            'email' => 'required|email',
+            'teamid' => 'required',
             'password' => 'required',
         ];
-        $input = $request->only('email', 'password');
+        $input = $request->only('teamid', 'password');
         $validator = Validator::make($input, $rules);
         if($validator->fails()) {
             $error = $validator->messages()->toJson();
             return response()->json(['success'=> false, 'error'=> $error]);
         }
         $credentials = [
-            'email' => $request->email,
+            'teamid' => $request->teamid,
             'password' => $request->password,
-            'is_verified' => 1
+            
         ];
         try {
             // attempt to verify the credentials and create a token for the user
             if (! $token = JWTAuth::attempt($credentials)) {
-                return response()->json(['success' => false, 'error' => 'Invalid Credentials. Please make sure you entered the right information and you have verified your email address.'], 401);
+                return response()->json(['success' => false, 'error' => 'Invalid Credentials. Please make sure you entered the right information.'], 401);
             }
         } catch (JWTException $e) {
             // something went wrong whilst attempting to encode the token
@@ -135,7 +148,7 @@ class AuthController extends Controller
         }
     }
 
-    
+
 
 	 /**
      * API Recover Password
