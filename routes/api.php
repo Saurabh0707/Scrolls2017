@@ -22,7 +22,7 @@ Route::post('login', 'AuthController@login');
 Route::post('recover', 'AuthController@recover');
 
 /*Sample Synopsisi Downlaod*/
-Route::get('downloadSynopsis', function()
+Route::get('downloadsynopsis', function()
 {
     $path = storage_path().'/'.'app'.'/'.'public'.'/'.'samplesynopsis'.'/'.'Synopsis.pdf';
     if (file_exists($path)) {
@@ -31,12 +31,12 @@ Route::get('downloadSynopsis', function()
 });
 
 /*Domains and their respective Topics*/
-Route::get('domains/getDomains', 'DomainController@index');
-Route::get('domains/getDomains/{id}/getTopics', 'DomainController@specificTopic');
+Route::get('getdomains', 'DomainController@index');
+Route::get('getdomains/{id}/gettopics', 'DomainController@specificTopic');
 
 /*Check whether student no and email already exist or not*/
-Route::get('checkAlreadyExist/{student_no}', 'CheckStudentController@checkStudentNo');
-Route::post('checkAlreadyExist', 'CheckStudentController@checkEmail');
+Route::post('checkstudentalreadyexist', 'CheckStudentController@checkStudentNo');
+Route::post('checkemailalreadyexist', 'CheckStudentController@checkEmail');
 
 /*Logout and Upload synopsis api*/
 Route::group(['middleware' => ['jwt.auth']], function() {

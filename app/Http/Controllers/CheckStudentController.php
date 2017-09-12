@@ -8,9 +8,9 @@ use App\Member;
 
 class CheckStudentController extends ApiController
 {
-     public function checkStudentNo($student_no)
+     public function checkStudentNo(Request $request)
     {
-        $user = Member::where('student_no', $student_no)->first();
+        $user = Member::where('student_no', $request->student_no)->first();
         if($user)
         {
             
