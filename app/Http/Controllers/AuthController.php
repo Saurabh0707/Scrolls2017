@@ -30,7 +30,7 @@ class AuthController extends ApiController
             'members.*.name' => 'required',
             'members.*.course' => 'required',
             'members.*.year' => 'required|max:1',
-            'members.*.student_no' => 'regex:/^(\d){7}[dD\-"\s"]{0,1}$/|unique:members',
+            'members.*.student_no' => 'nullable|regex:/^(\d){7}[dD\-"\s"]{0,1}$/|unique:members',
             'members.*.accomodation' => 'required',
             'members.*.college_name' => 'required|alpha',
             'members.*.email' => 'required|email|unique:members',
