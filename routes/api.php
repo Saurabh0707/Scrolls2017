@@ -38,9 +38,16 @@ Route::get('getdomains/{id}/gettopics', 'DomainController@specificTopic');
 Route::post('checkstudentalreadyexist', 'CheckStudentController@checkStudentNo');
 Route::post('checkemailalreadyexist', 'CheckStudentController@checkEmail');
 
+/*uploading files*/
+//Route::get('fileentry', 'FileEntryController@index');
+//Route::get('fileentry/get/{filename}', [
+	'as' => 'getentry', 'uses' => 'FileEntryController@get']);
+
+
 /*Logout and Upload synopsis api*/
 Route::group(['middleware' => ['jwt.auth']], function() {
     Route::get('logout', 'AuthController@logout');
+    Route::post('fileentry/add','FileEntryController@add');
     Route::get('test', function(){
         return response()->json(['foo'=>'bar']);
     });

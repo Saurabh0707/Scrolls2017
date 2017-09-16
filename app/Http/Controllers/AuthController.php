@@ -9,6 +9,7 @@ use Validator;
 use DB, Hash, Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Mail\Message;
+use App\Fileentry;
 class AuthController extends ApiController
 {
     /**
@@ -106,11 +107,12 @@ class AuthController extends ApiController
             'password' => 'required',
         ];
         $input = $request->only('teamid', 'password');
-        $validator = Validator::make($input, $rules);
+        $this->validate($request, $rules);
+       /* $validator = Validator::make($input, $rules);
         if($validator->fails()) {
             $error = $validator->messages()->toJson();
             return response()->json(['success'=> false, 'error'=> $error]);
-        }
+        }*/
         $credentials = [
             'teamid' => $request->teamid,
             'password' => $request->password,
@@ -119,7 +121,7 @@ class AuthController extends ApiController
         try {
             // attempt to verify the credentials and create a token for the user
             if (! $token = JWTAuth::attempt($credentials)) {
-                return response()->json(['success' => false, 'error' => 'Invalid Credentials. Please make sure you entered the right information.'], 401);
+                return response()->json(['success' => false, 'error' => 'Invalid Credentials. Please enter correct team id and password.'], 401);
             }
         } catch (JWTException $e) {
             // something went wrong whilst attempting to encode the token
@@ -158,16 +160,19 @@ class AuthController extends ApiController
      */
     public function recover(Request $request)
     {
-        $user = User::where('email', $request->email)->first();
+        $user = Team::where('teamid', $request->teamid)->first();
+        //dd($user);
         if (!$user) {
-            $error_message = "Your email address was not found.";
+            $error_message = "Your email id was not found.";
             return response()->json(['success' => false, 'error' => ['email'=> $error_message]], 401);
         }
         try {
+            //dd($user);
+            //dd($request->only('email'));
             Password::sendResetLink($request->only('email'), function (Message $message) {
                 $message->subject('Your Password Reset Link');
             });
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             //Return with error
             $error_message = $e->getMessage();
             return response()->json(['success' => false, 'error' => $error_message], 401);

@@ -70,6 +70,12 @@ return [
             'model' => App\Team::class,
         ],
 
+        'members' => [
+            'driver' => 'eloquent',
+            'model' => App\Member::class,
+
+        ]
+
         // 'users' => [
         //     'driver' => 'database',
         //     'table' => 'users',
